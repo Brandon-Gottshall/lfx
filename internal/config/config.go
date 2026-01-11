@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -16,6 +17,11 @@ type Config struct {
 	Extensions    map[string]bool `toml:"extensions"`
 	Paths         PathsConfig     `toml:"paths"`
 }
+
+var (
+	ErrConfigMissing = errors.New("config missing")
+	ErrConfigInvalid = errors.New("config invalid")
+)
 
 type UIConfig struct {
 	Theme string `toml:"theme"`
@@ -53,23 +59,23 @@ func Load(configPath string) (Config, error) {
 	info, err := os.Stat(configPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return cfg, nil
+			return cfg, fmt.Errorf("%w: %s", ErrConfigMissing, configPath)
 		}
 		return cfg, err
 	}
 	if info.IsDir() {
-		return cfg, errors.New("config path is a directory")
+		return cfg, fmt.Errorf("%w: config path is a directory", ErrConfigInvalid)
 	}
 
 	if _, err := toml.DecodeFile(configPath, &cfg); err != nil {
-		return cfg, err
+		return cfg, fmt.Errorf("%w: %w", ErrConfigInvalid, err)
 	}
 
 	if cfg.ConfigVersion == 0 {
 		cfg.ConfigVersion = CurrentVersion
 	}
 	if cfg.ConfigVersion != CurrentVersion {
-		return cfg, errors.New("unsupported config_version")
+		return cfg, fmt.Errorf("%w: unsupported config_version %d", ErrConfigInvalid, cfg.ConfigVersion)
 	}
 
 	return cfg, nil

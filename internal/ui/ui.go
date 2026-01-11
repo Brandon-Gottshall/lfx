@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-	errorStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("9"))
+	titleStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+	errorStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("9"))
+	warningStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214"))
 )
 
 func PrintTitle(text string) {
@@ -18,6 +19,13 @@ func PrintTitle(text string) {
 
 func PrintError(message string, err error) {
 	fmt.Fprintln(os.Stderr, errorStyle.Render("error:"), message)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
+}
+
+func PrintWarning(message string, err error) {
+	fmt.Fprintln(os.Stderr, warningStyle.Render("warning:"), message)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}

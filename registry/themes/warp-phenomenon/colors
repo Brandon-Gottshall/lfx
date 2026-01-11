@@ -1,0 +1,14 @@
+# Warp Phenomenon-inspired lf colors
+# format: <pattern> <ANSI>
+
+di  01;34      # directories – bright blue
+ln  01;36      # symlinks – cyan
+or  31;01      # broken links – bright red
+ex  01;36      # executables – neon cyan
+fi  00         # regular files – default
+
+# subtle accents
+pi  33         # pipes – yellow
+so  35         # sockets – magenta
+bd  33;01      # block devices
+cd  33;01
