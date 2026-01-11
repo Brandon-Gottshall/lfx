@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="${1:-local}"
+owner="${IFX_GH_OWNER:-brandon-gottshall}"
+repo="${IFX_GH_REPO:-ifx}"
+ref="${IFX_GH_REF:-main}"
+tap_name="${IFX_BREW_TAP:-ifx/local}"
+
+require_cmd() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "missing required command: $1" >&2
+    exit 1
+  fi
+}
+
+print_usage() {
+  cat <<EOF >&2
+usage: $0 [local|remote]
+  local : build from current repo and install via a temporary local tap
+  remote: install from a GitHub repo tarball via a temporary local tap
+
+env:
+  IFX_BREW_TAP   tap name (default: ifx/local)
+  IFX_GH_OWNER  GitHub owner (default: brandon-gottshall)
+  IFX_GH_REPO   GitHub repo (default: ifx)
+  IFX_GH_REF    Git ref for remote (default: main)
+EOF
+}
+
+ensure_tap_available() {
+  if brew tap | rg -q "^${tap_name}$"; then
+    echo "tap ${tap_name} already exists; set IFX_BREW_TAP to a unique name or untap it first" >&2
+    exit 1
+  fi
+}
+
+create_tap_repo() {
+  tap_dir="$1"
+  mkdir -p "${tap_dir}/Formula"
+  git -C "${tap_dir}" init -q
+}
+
+commit_formula() {
+  tap_dir="$1"
+  git -C "${tap_dir}" add "Formula/lfx.rb"
+  git -C "${tap_dir}" -c user.name=ifx -c user.email=ifx@local commit -m "add lfx formula" -q
+}
+
+install_from_tap() {
+  tap_dir="$1"
+  brew tap "${tap_name}" "${tap_dir}"
+  brew install --build-from-source "${tap_name}/lfx"
+}
+
+install_local() {
+  require_cmd brew
+  require_cmd go
+  require_cmd tar
+  require_cmd shasum
+  require_cmd git
+  require_cmd uname
+  require_cmd rg
+
+  ensure_tap_available
+
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "${tmpdir}"' EXIT
+  tap_dir="${tmpdir}/tap"
+  create_tap_repo "${tap_dir}"
+
+  go build -o "${tmpdir}/lfx" ./cmd/lfx
+  tarball="${tmpdir}/lfx-$(uname -s)-$(uname -m).tar.gz"
+  tar -czf "${tarball}" -C "${tmpdir}" lfx
+  sha256="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
+
+  cat > "${tap_dir}/Formula/lfx.rb" <<EOF
+class Lfx < Formula
+  desc "Fast, pretty-by-default control-plane CLI for lf"
+  homepage "https://github.com/${owner}/${repo}"
+  version "0.0.0-dev"
+  url "file://${tarball}"
+  sha256 "${sha256}"
+
+  def install
+    bin.install "lfx"
+  end
+end
+EOF
+
+  commit_formula "${tap_dir}"
+  install_from_tap "${tap_dir}"
+
+  echo "Installed from local tap ${tap_name}." >&2
+  echo "Cleanup: brew uninstall lfx && brew untap ${tap_name}" >&2
+}
+
+install_remote() {
+  require_cmd brew
+  require_cmd curl
+  require_cmd shasum
+  require_cmd tar
+  require_cmd git
+  require_cmd uname
+  require_cmd rg
+
+  ensure_tap_available
+
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "${tmpdir}"' EXIT
+  tap_dir="${tmpdir}/tap"
+  create_tap_repo "${tap_dir}"
+
+  tarball="${tmpdir}/ifx.tar.gz"
+  url="https://github.com/${owner}/${repo}/archive/refs/heads/${ref}.tar.gz"
+  curl -fsSL "${url}" -o "${tarball}"
+  sha256="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
+
+  cat > "${tap_dir}/Formula/lfx.rb" <<EOF
+class Lfx < Formula
+  desc "Fast, pretty-by-default control-plane CLI for lf"
+  homepage "https://github.com/${owner}/${repo}"
+  version "0.0.0-dev"
+  url "${url}"
+  sha256 "${sha256}"
+  depends_on "go"
+
+  def install
+    system "go", "build", "-o", bin/"lfx", "./cmd/lfx"
+  end
+end
+EOF
+
+  commit_formula "${tap_dir}"
+  install_from_tap "${tap_dir}"
+
+  echo "Installed from remote ${owner}/${repo}@${ref} via tap ${tap_name}." >&2
+  echo "Cleanup: brew uninstall lfx && brew untap ${tap_name}" >&2
+}
+
+case "${mode}" in
+  local)
+    install_local
+    ;;
+  remote)
+    install_remote
+    ;;
+  *)
+    print_usage
+    exit 1
+    ;;
+esac

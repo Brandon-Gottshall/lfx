@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,8 @@ import (
 )
 
 func main() {
-	if err := loadConfig(); err != nil {
+	cfgPath := config.DefaultPath(paths.IfxConfigDir())
+	if err := loadConfig(cfgPath); err != nil {
 		ui.PrintError("failed to load config", err)
 		os.Exit(1)
 	}
@@ -35,10 +37,21 @@ func main() {
 	}
 }
 
-func loadConfig() error {
-	cfgPath := config.DefaultPath(paths.IfxConfigDir())
-	_, err := config.Load(cfgPath)
-	return err
+func loadConfig(configPath string) error {
+	_, err := config.Load(configPath)
+	if err == nil {
+		return nil
+	}
+	switch {
+	case errors.Is(err, config.ErrConfigMissing):
+		ui.PrintWarning(fmt.Sprintf("missing config at %s; using defaults", configPath), err)
+		return nil
+	case errors.Is(err, config.ErrConfigInvalid):
+		ui.PrintWarning(fmt.Sprintf("invalid config at %s; using defaults", configPath), err)
+		return nil
+	default:
+		return err
+	}
 }
 
 func listThemes() {
