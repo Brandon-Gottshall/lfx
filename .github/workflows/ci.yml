@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.5'
+          check-latest: false
+      - name: Build
+        run: go build ./cmd/lfx
+      - name: Test
+        run: go test ./...
+      - name: Lint
+        run: test -z "$(gofmt -l cmd internal)"
