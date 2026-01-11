@@ -3,6 +3,14 @@
 ## Recommendation
 Use a separate tap repository (`homebrew-lfx`) instead of a folder inside the main repo. This keeps Homebrew metadata isolated, enables clean PR-based updates, and avoids coupling release automation to the main repo layout.
 
+## Local Dev Install
+For local testing without a tap, install the repo formula directly:
+```bash
+./scripts/lfx-dev
+```
+This script builds a local tarball and installs a temporary formula for the current machine.
+It creates a local tap (default `lfx/local`) and installs `lfx` from it.
+
 ## Tap Repo Structure
 ```
 homebrew-lfx/

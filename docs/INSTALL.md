@@ -16,6 +16,20 @@ Update:
 brew upgrade lfx
 ```
 
+## Homebrew (Dev Install)
+Local repo build (one command):
+```bash
+./scripts/lfx-dev
+```
+This creates a temporary local tap (default `lfx/local`) and installs from it.
+To remove: `brew uninstall lfx && brew untap lfx/local`.
+
+Remote repo build (one command):
+```bash
+LFX_GH_OWNER=yourname LFX_GH_REPO=lfx ./scripts/lfx-dev remote
+```
+This installs from the GitHub tarball for the given ref.
+
 ## Curl Fallback
 Use this when Homebrew is not available.
 
