@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+logdir="${root}/artifacts/ifx/pre-commit"
+mkdir -p "${logdir}"
+
+sha="$(git rev-parse --short HEAD 2>/dev/null || echo "no-head")"
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+logfile="${logdir}/${timestamp}_${sha}.log"
+
+status=0
+{
+  echo "pre-commit checks"
+  date -u
+  echo "running: make build"
+  GOCACHE="${root}/.cache/go-build" GOMODCACHE="${root}/.cache/gomod" make build || status=$?
+  if [ "${status}" -eq 0 ]; then
+    echo "running: make test"
+    GOCACHE="${root}/.cache/go-build" GOMODCACHE="${root}/.cache/gomod" make test || status=$?
+  fi
+  if [ "${status}" -eq 0 ]; then
+    echo "running: make lint"
+    make lint || status=$?
+  fi
+  if [ "${status}" -eq 0 ]; then
+    echo "running: ./scripts/ifx-build-tarball"
+    ./scripts/ifx-build-tarball || status=$?
+  fi
+  echo "completed at $(date -u) with status ${status}"
+} | tee "${logfile}"
+
+if [ "${status}" -ne 0 ]; then
+  echo "pre-commit failed; see ${logfile}" >&2
+fi
+
+exit "${status}"

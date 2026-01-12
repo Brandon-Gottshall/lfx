@@ -16,19 +16,8 @@ Update:
 brew upgrade ifx
 ```
 
-## Homebrew (Dev Install)
-Local repo build (one command):
-```bash
-./scripts/ifx-dev
-```
-This creates a temporary local tap (default `ifx/local`) and installs from it.
-To remove: `brew uninstall lfx && brew untap ifx/local`.
-
-Remote repo build (one command):
-```bash
-IFX_GH_OWNER=yourname IFX_GH_REPO=ifx ./scripts/ifx-dev remote
-```
-This installs from the GitHub tarball for the given ref.
+## Development
+See `docs/DEVELOPMENT.md` for local dev install and commit-hook workflows.
 
 ## Curl Fallback
 Use this when Homebrew is not available.

@@ -28,6 +28,7 @@ lfx theme list
 - `docs/INVARIANTS.md`
 - `docs/SECURITY.md`
 - `docs/INSTALL.md`
+- `docs/DEVELOPMENT.md`
 - `docs/CONTRIBUTING.md`
 - `docs/GH_INIT.md`
 - `docs/ISSUES_MVP.md`

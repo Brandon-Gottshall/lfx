@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+logdir="${root}/artifacts/ifx/post-commit"
+mkdir -p "${logdir}"
+
+sha="$(git rev-parse --short HEAD)"
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+logfile="${logdir}/${timestamp}_${sha}.log"
+
+env_file="${root}/artifacts/ifx/build/latest.env"
+if [ ! -f "${env_file}" ]; then
+  echo "missing build metadata at ${env_file}; run pre-commit checks first" >&2
+  exit 1
+fi
+
+set -a
+. "${env_file}"
+set +a
+
+status=0
+{
+  echo "post-commit install for $(git rev-parse HEAD)"
+  date -u
+  echo "using tarball: ${IFX_DEV_TARBALL}"
+  ./scripts/ifx-dev || status=$?
+  echo "completed at $(date -u) with status ${status}"
+} | tee "${logfile}"
+
+exit "${status}"

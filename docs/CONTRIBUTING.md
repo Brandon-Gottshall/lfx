@@ -5,6 +5,7 @@
 - `docs/PRD.md`
 - `docs/INVARIANTS.md`
 - `docs/SECURITY.md`
+- `docs/DEVELOPMENT.md`
 
 ## Repo Model
 - Single mono-repo for CLI, registry metadata, and vendored themes.
