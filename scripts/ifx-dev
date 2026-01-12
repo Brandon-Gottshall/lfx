@@ -19,8 +19,8 @@ require_cmd() {
 print_usage() {
   cat <<EOF >&2
 usage: $0 [local|remote]
-  local : build from the current repo and install via a fresh local tap
-  remote: download a GitHub tarball and install via a fresh local tap
+  local : build from the current repo and install via a local tap
+  remote: download a GitHub tarball and install via a local tap
 
 env:
   LFX_DEV_TARBALL path to a prebuilt tarball
@@ -44,9 +44,16 @@ commit_formula() {
   git -C "${tap_dir}" -c user.name=lfx -c user.email=lfx@local commit -m "add lfx formula" -q
 }
 
-ensure_tap_fresh() {
+ensure_tap_repo() {
+  tap_repo=""
+  tap_created="false"
   if brew tap | rg -q "^${tap_name}$"; then
-    brew untap "${tap_name}"
+    tap_repo="$(brew --repo "${tap_name}")"
+  else
+    tap_dir="${tmpdir}/tap"
+    create_tap_repo "${tap_dir}"
+    tap_repo="${tap_dir}"
+    tap_created="true"
   fi
 }
 
@@ -60,8 +67,6 @@ install_from_tap() {
 
 prepare_build_dir() {
   tmpdir="$(mktemp -d)"
-  tap_dir="${tmpdir}/tap"
-  create_tap_repo "${tap_dir}"
   trap 'rm -rf "${tmpdir}"' EXIT
 }
 
@@ -74,8 +79,8 @@ install_local() {
   require_cmd uname
   require_cmd rg
 
-  ensure_tap_fresh
   prepare_build_dir
+  ensure_tap_repo
 
   if [ -z "${tarball}" ]; then
     go build -o "${tmpdir}/lfx" ./cmd/lfx
@@ -86,7 +91,8 @@ install_local() {
     sha256="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
   fi
 
-  cat > "${tap_dir}/Formula/lfx.rb" <<EOF
+  mkdir -p "${tap_repo}/Formula"
+  cat > "${tap_repo}/Formula/lfx.rb" <<EOF
 class Lfx < Formula
   desc "Fast, pretty-by-default control-plane CLI for lf"
   homepage "https://github.com/${owner}/${repo}"
@@ -100,8 +106,10 @@ class Lfx < Formula
 end
 EOF
 
-  commit_formula "${tap_dir}"
-  brew tap "${tap_name}" "${tap_dir}"
+  if [ "${tap_created}" = "true" ]; then
+    commit_formula "${tap_repo}"
+    brew tap "${tap_name}" "${tap_repo}"
+  fi
   install_from_tap
 
   echo "Installed from local tap ${tap_name}." >&2
@@ -117,15 +125,16 @@ install_remote() {
   require_cmd uname
   require_cmd rg
 
-  ensure_tap_fresh
   prepare_build_dir
+  ensure_tap_repo
 
   tarball="${tmpdir}/lfx.tar.gz"
   url="https://github.com/${owner}/${repo}/archive/refs/heads/${ref}.tar.gz"
   curl -fsSL "${url}" -o "${tarball}"
   sha256="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
 
-  cat > "${tap_dir}/Formula/lfx.rb" <<EOF
+  mkdir -p "${tap_repo}/Formula"
+  cat > "${tap_repo}/Formula/lfx.rb" <<EOF
 class Lfx < Formula
   desc "Fast, pretty-by-default control-plane CLI for lf"
   homepage "https://github.com/${owner}/${repo}"
@@ -140,8 +149,10 @@ class Lfx < Formula
 end
 EOF
 
-  commit_formula "${tap_dir}"
-  brew tap "${tap_name}" "${tap_dir}"
+  if [ "${tap_created}" = "true" ]; then
+    commit_formula "${tap_repo}"
+    brew tap "${tap_name}" "${tap_repo}"
+  fi
   install_from_tap
 
   echo "Installed from remote ${owner}/${repo}@${ref} via tap ${tap_name}." >&2
