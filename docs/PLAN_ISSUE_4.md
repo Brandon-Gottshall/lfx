@@ -79,13 +79,12 @@ Build a minimal, reusable install helper that:
    - Must be deterministic: same input yields same file.
    - No duplicate lines when re-running.
 4) Block contents for theme set (minimum viable):
-   - `set colors ~/.config/lf/colors`
-   - If you prefer not to hardcode path, expand `LfConfigDir()` to absolute path.
+   - Comment line referencing the colors file path (lf loads it automatically).
    - Block structure example (subject to decision):
      ```
      # lfx:begin
      # lfx:managed
-     set colors ~/.config/lf/colors
+     # colors file at ~/.config/lf/colors
      # lfx:end
      ```
 5) If backup policy is adopted, create/overwrite `lfrc.lfx.bak` before writing.

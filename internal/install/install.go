@@ -61,7 +61,7 @@ func buildLfrcBlock(colorsPath string) string {
 	return strings.Join([]string{
 		blockBegin,
 		blockManaged,
-		fmt.Sprintf("set colors %s", colorsPath),
+		fmt.Sprintf("# colors file at %s", colorsPath),
 		blockEnd,
 		"",
 	}, "\n")
