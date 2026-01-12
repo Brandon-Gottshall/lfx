@@ -6,6 +6,8 @@ owner="${LFX_GH_OWNER:-brandon-gottshall}"
 repo="${LFX_GH_REPO:-lfx}"
 ref="${LFX_GH_REF:-main}"
 tap_name="${LFX_BREW_TAP:-lfx/local}"
+tarball="${LFX_DEV_TARBALL:-}"
+sha256="${LFX_DEV_SHA256:-}"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -17,22 +19,17 @@ require_cmd() {
 print_usage() {
   cat <<EOF >&2
 usage: $0 [local|remote]
-  local : build from current repo and install via a temporary local tap
-  remote: install from a GitHub repo tarball via a temporary local tap
+  local : build from the current repo and install via a fresh local tap
+  remote: download a GitHub tarball and install via a fresh local tap
 
 env:
+  LFX_DEV_TARBALL path to a prebuilt tarball
+  LFX_DEV_SHA256  sha256 for LFX_DEV_TARBALL
   LFX_BREW_TAP   tap name (default: lfx/local)
   LFX_GH_OWNER  GitHub owner (default: brandon-gottshall)
   LFX_GH_REPO   GitHub repo (default: lfx)
   LFX_GH_REF    Git ref for remote (default: main)
 EOF
-}
-
-ensure_tap_available() {
-  if brew tap | rg -q "^${tap_name}$"; then
-    echo "tap ${tap_name} already exists; set LFX_BREW_TAP to a unique name or untap it first" >&2
-    exit 1
-  fi
 }
 
 create_tap_repo() {
@@ -47,10 +44,25 @@ commit_formula() {
   git -C "${tap_dir}" -c user.name=lfx -c user.email=lfx@local commit -m "add lfx formula" -q
 }
 
+ensure_tap_fresh() {
+  if brew tap | rg -q "^${tap_name}$"; then
+    brew untap "${tap_name}"
+  fi
+}
+
 install_from_tap() {
-  tap_dir="$1"
-  brew tap "${tap_name}" "${tap_dir}"
-  brew install --build-from-source "${tap_name}/lfx"
+  if brew list --formula | rg -q "^lfx$"; then
+    brew reinstall --build-from-source "${tap_name}/lfx"
+  else
+    brew install --build-from-source "${tap_name}/lfx"
+  fi
+}
+
+prepare_build_dir() {
+  tmpdir="$(mktemp -d)"
+  tap_dir="${tmpdir}/tap"
+  create_tap_repo "${tap_dir}"
+  trap 'rm -rf "${tmpdir}"' EXIT
 }
 
 install_local() {
@@ -62,17 +74,17 @@ install_local() {
   require_cmd uname
   require_cmd rg
 
-  ensure_tap_available
+  ensure_tap_fresh
+  prepare_build_dir
 
-  tmpdir="$(mktemp -d)"
-  trap 'rm -rf "${tmpdir}"' EXIT
-  tap_dir="${tmpdir}/tap"
-  create_tap_repo "${tap_dir}"
-
-  go build -o "${tmpdir}/lfx" ./cmd/lfx
-  tarball="${tmpdir}/lfx-$(uname -s)-$(uname -m).tar.gz"
-  tar -czf "${tarball}" -C "${tmpdir}" lfx
-  sha256="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
+  if [ -z "${tarball}" ]; then
+    go build -o "${tmpdir}/lfx" ./cmd/lfx
+    tarball="${tmpdir}/lfx-$(uname -s)-$(uname -m).tar.gz"
+    tar -czf "${tarball}" -C "${tmpdir}" lfx
+    sha256="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
+  elif [ -z "${sha256}" ]; then
+    sha256="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
+  fi
 
   cat > "${tap_dir}/Formula/lfx.rb" <<EOF
 class Lfx < Formula
@@ -89,7 +101,8 @@ end
 EOF
 
   commit_formula "${tap_dir}"
-  install_from_tap "${tap_dir}"
+  brew tap "${tap_name}" "${tap_dir}"
+  install_from_tap
 
   echo "Installed from local tap ${tap_name}." >&2
   echo "Cleanup: brew uninstall lfx && brew untap ${tap_name}" >&2
@@ -104,12 +117,8 @@ install_remote() {
   require_cmd uname
   require_cmd rg
 
-  ensure_tap_available
-
-  tmpdir="$(mktemp -d)"
-  trap 'rm -rf "${tmpdir}"' EXIT
-  tap_dir="${tmpdir}/tap"
-  create_tap_repo "${tap_dir}"
+  ensure_tap_fresh
+  prepare_build_dir
 
   tarball="${tmpdir}/lfx.tar.gz"
   url="https://github.com/${owner}/${repo}/archive/refs/heads/${ref}.tar.gz"
@@ -132,7 +141,8 @@ end
 EOF
 
   commit_formula "${tap_dir}"
-  install_from_tap "${tap_dir}"
+  brew tap "${tap_name}" "${tap_dir}"
+  install_from_tap
 
   echo "Installed from remote ${owner}/${repo}@${ref} via tap ${tap_name}." >&2
   echo "Cleanup: brew uninstall lfx && brew untap ${tap_name}" >&2

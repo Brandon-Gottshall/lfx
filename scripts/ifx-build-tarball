@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+outdir="${root}/artifacts/lfx/build"
+mkdir -p "${outdir}"
+
+if [ ! -f "${root}/bin/lfx" ]; then
+  echo "missing bin/lfx; run make build first" >&2
+  exit 1
+fi
+
+platform="$(uname -s)"
+arch="$(uname -m)"
+tarball="${outdir}/lfx-${platform}-${arch}.tar.gz"
+tar -czf "${tarball}" -C "${root}/bin" lfx
+sha256="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
+
+cat > "${outdir}/latest.env" <<EOF
+LFX_DEV_TARBALL=${tarball}
+LFX_DEV_SHA256=${sha256}
+EOF
+
+echo "wrote ${tarball}"
+echo "sha256 ${sha256}"

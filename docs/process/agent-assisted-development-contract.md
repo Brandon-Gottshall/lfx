@@ -12,6 +12,7 @@ This repo is designed for agent-first development: explicit contracts, determini
 - `docs/` defines the contract (CLI behavior, registry layout, config schema).
 - `AGENTS.md` defines operational invariants and security boundaries.
 - CI is the enforcement mechanism; failing CI means the change is not done.
+- `docs/DEVELOPMENT.md` defines the local dev and hook workflow.
 
 ## Expectations
 - Keep changes scoped to the task.
