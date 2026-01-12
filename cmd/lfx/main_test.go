@@ -32,6 +32,41 @@ func TestThemeListCLI(t *testing.T) {
 	}
 }
 
+func TestThemeSetCLI(t *testing.T) {
+	repoRoot, err := findRepoRoot()
+	if err != nil {
+		t.Fatalf("failed to locate repo root: %v", err)
+	}
+
+	configDir := filepath.Join(t.TempDir(), "config")
+	cmd := exec.Command("go", "run", "./cmd/lfx", "theme", "set", "default-dark")
+	cmd.Dir = repoRoot
+	cmd.Env = append(os.Environ(),
+		"GOCACHE="+filepath.Join(t.TempDir(), "go-build"),
+		"XDG_CONFIG_HOME="+configDir,
+	)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("lfx theme set failed: %v\n%s", err, output)
+	}
+
+	configRoot := filepath.Join(configDir, "lf")
+	colorsPath := filepath.Join(configRoot, "colors")
+	if _, err := os.Stat(colorsPath); err != nil {
+		t.Fatalf("colors file missing: %v", err)
+	}
+
+	lfrcPath := filepath.Join(configRoot, "lfrc")
+	data, err := os.ReadFile(lfrcPath)
+	if err != nil {
+		t.Fatalf("lfrc missing: %v", err)
+	}
+	if !strings.Contains(string(data), "# lfx:begin") {
+		t.Fatalf("expected managed block, got: %s", string(data))
+	}
+}
+
 func findRepoRoot() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
