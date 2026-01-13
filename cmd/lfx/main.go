@@ -36,6 +36,20 @@ func main() {
 		setTheme(args[2])
 	case len(args) >= 2 && args[0] == "theme" && args[1] == "list":
 		listThemes()
+	case len(args) >= 3 && args[0] == "plugin" && args[1] == "install":
+		if len(args) != 3 {
+			ui.PrintError("invalid arguments", fmt.Errorf("expected: lfx plugin install <name>"))
+			os.Exit(1)
+		}
+		installPlugin(args[2])
+	case len(args) >= 3 && args[0] == "plugin" && args[1] == "uninstall":
+		if len(args) != 3 {
+			ui.PrintError("invalid arguments", fmt.Errorf("expected: lfx plugin uninstall <name>"))
+			os.Exit(1)
+		}
+		uninstallPlugin(args[2])
+	case len(args) >= 2 && args[0] == "plugin" && args[1] == "list":
+		listPlugins()
 	case len(args) >= 1 && args[0] == "doctor":
 		runDoctor()
 	default:
@@ -85,6 +99,30 @@ func listThemes() {
 	}
 }
 
+func listPlugins() {
+	repoRoot, err := os.Getwd()
+	if err != nil {
+		ui.PrintError("failed to determine working directory", err)
+		os.Exit(1)
+	}
+
+	regRoot := filepath.Join(repoRoot, "registry")
+	plugins, err := registry.ListPlugins(regRoot)
+	if err != nil {
+		ui.PrintError("failed to read plugins registry", err)
+		os.Exit(1)
+	}
+
+	ui.PrintTitle("Plugins")
+	if len(plugins) == 0 {
+		fmt.Println("(none)")
+		return
+	}
+	for _, plugin := range plugins {
+		fmt.Println("- " + plugin)
+	}
+}
+
 func runDoctor() {
 	repoRoot, err := os.Getwd()
 	if err != nil {
@@ -112,11 +150,17 @@ func printHelp() {
 	fmt.Println("Usage:")
 	fmt.Println("  lfx theme list")
 	fmt.Println("  lfx theme set <name>")
+	fmt.Println("  lfx plugin list")
+	fmt.Println("  lfx plugin install <name>")
+	fmt.Println("  lfx plugin uninstall <name>")
 	fmt.Println("  lfx doctor")
 	fmt.Println("")
 	fmt.Println("Commands:")
 	fmt.Println("  theme list   List available themes from registry")
 	fmt.Println("  theme set    Apply a vendored theme")
+	fmt.Println("  plugin list  List available plugins from registry")
+	fmt.Println("  plugin install  Install a vendored plugin snippet")
+	fmt.Println("  plugin uninstall  Remove a previously installed plugin snippet")
 	fmt.Println("  doctor       Check registry and lf config targets")
 }
 
@@ -135,4 +179,35 @@ func setTheme(themeName string) {
 
 	ui.PrintTitle("Theme")
 	fmt.Printf("applied %s\n", themeName)
+}
+
+func installPlugin(pluginName string) {
+	repoRoot, err := os.Getwd()
+	if err != nil {
+		ui.PrintError("failed to determine working directory", err)
+		os.Exit(1)
+	}
+
+	regRoot := filepath.Join(repoRoot, "registry")
+	if err := install.ApplyPlugin(regRoot, pluginName, paths.LfConfigDir()); err != nil {
+		ui.PrintError("failed to install plugin", err)
+		os.Exit(1)
+	}
+
+	ui.PrintTitle("Plugin")
+	fmt.Printf("installed %s\n", pluginName)
+}
+
+func uninstallPlugin(pluginName string) {
+	if pluginName == "" {
+		ui.PrintError("invalid arguments", fmt.Errorf("expected: lfx plugin uninstall <name>"))
+		os.Exit(1)
+	}
+	if err := install.RemovePlugin(paths.LfConfigDir(), pluginName); err != nil {
+		ui.PrintError("failed to uninstall plugin", err)
+		os.Exit(1)
+	}
+
+	ui.PrintTitle("Plugin")
+	fmt.Printf("uninstalled %s\n", pluginName)
 }

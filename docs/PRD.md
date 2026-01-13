@@ -50,9 +50,9 @@ lfx is a fast, pretty-by-default external control-plane CLI for lf. It manages t
 - Icon packs are only downloaded when explicitly selected.
 
 ## Example Commands
-- `lfx themes list`
-- `lfx themes set catppuccin`
+- `lfx theme list`
+- `lfx theme set catppuccin`
 - `lfx icons list`
 - `lfx icons set nvim-devicons`
-- `lfx plugins install hotkeys-hud`
-- `lfx plugins uninstall hotkeys-hud`
+- `lfx plugin install hotkeys-hud`
+- `lfx plugin uninstall hotkeys-hud`

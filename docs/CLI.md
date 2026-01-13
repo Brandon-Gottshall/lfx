@@ -70,6 +70,14 @@ Example:
 lfx plugin install hotkeys-hud
 ```
 
+### lfx plugin uninstall <plugin-name>
+Remove plugin snippet from `~/.config/lf/plugins/` and update `lfrc` block.
+
+Example:
+```bash
+lfx plugin uninstall hotkeys-hud
+```
+
 ### lfx doctor
 Verify target layout and registry presence. Recommended but optional.
 
@@ -83,6 +91,9 @@ Use a stable, scoped block in `~/.config/lf/lfrc`, e.g.:
 ```text
 # lfx:begin
 # lfx:managed
+# colors file at ~/.config/lf/colors
+# plugins
+source ~/.config/lf/plugins/hotkeys-hud.lfrc
 # lfx:end
 ```
 The block must be rewritten deterministically.

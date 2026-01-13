@@ -38,3 +38,32 @@ func ListThemes(registryRoot string) ([]string, error) {
 	sort.Strings(themes)
 	return themes, nil
 }
+
+func ListPlugins(registryRoot string) ([]string, error) {
+	pluginsDir := filepath.Join(registryRoot, "plugins")
+	entries, err := os.ReadDir(pluginsDir)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return []string{}, nil
+		}
+		return nil, err
+	}
+
+	var plugins []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, ".") {
+			continue
+		}
+		if filepath.Ext(name) != ".lfrc" {
+			continue
+		}
+		plugins = append(plugins, strings.TrimSuffix(name, ".lfrc"))
+	}
+
+	sort.Strings(plugins)
+	return plugins, nil
+}

@@ -78,6 +78,7 @@ Implement `lfx plugin install <name>` to install `registry/plugins/<plugin-name>
 
 Acceptance:
 - Install is idempotent and scoped.
+- Uninstall removes the snippet and updates the lfrc block.
 
 ### 6. Icons set (metadata download + checksum)
 Implement `lfx icons set <pack>` to read `registry/icons/<icon-pack>.json`, download assets, verify checksum, and install into `~/.config/lf/icons`.

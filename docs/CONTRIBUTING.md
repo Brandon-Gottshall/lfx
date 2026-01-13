@@ -13,8 +13,8 @@
 
 ## What Goes Where
 - Themes: add under `registry/themes/<name>/` and vendor the theme file.
-- Plugins: add under `registry/plugins/<name>/` with a file-based snippet.
-- Icons: add metadata under `registry/icons/<name>/` only; link to upstream assets.
+- Plugins: add under `registry/plugins/<name>.lfrc` with a file-based snippet.
+- Icons: add metadata under `registry/icons/<name>.json` only; link to upstream assets.
 
 ## Contribution Workflow
 1) Fork and create a topic branch.
@@ -32,7 +32,7 @@
 
 ## Plugin Contributions
 - Keep snippets minimal and idempotent.
-- Any `lfrc` edits must be scoped with a named block (e.g., `# lfx:begin hotkeys-hud`).
+- Any `lfrc` edits must be scoped with a named block (e.g., `# lfx:begin` / `# lfx:end`).
 
 ## Icon Pack Contributions
 - Do not vendor assets.

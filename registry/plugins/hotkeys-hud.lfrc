@@ -1,0 +1,15 @@
+# hotkeys-hud plugin snippet
+cmd lfx_hotkeys_hud %{{
+  printf "%s\n" \
+    "lfx hotkeys (lf defaults):" \
+    "" \
+    "  q    quit" \
+    "  gg   top" \
+    "  G    bottom" \
+    "  /    search" \
+    "  ?    this help" \
+    "" \
+    "Press any key to return..."
+  read -r -n 1 -s
+}}
+map ? lfx_hotkeys_hud
